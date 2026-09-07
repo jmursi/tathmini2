@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tathmini AI — Audit Analytics Prototype</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --navy-900:#0B1B33;
+  --navy-800:#122A4A;
+  --navy-700:#1C3B60;
+  --maroon-700:#7A1930;
+  --maroon-600:#9A2542;
+  --maroon-100:#F1DEE1;
+  --gold-500:#C79A31;
+  --gold-600:#AD8324;
+  --gold-100:#F4E7C7;
+  --paper:#FAF7EF;
+  --paper-line:#E3DAC4;
+  --ink-900:#1B2230;
+  --ink-600:#565F70;
+  --ink-400:#8A8F98;
+  --white:#FFFFFF;
+  --ok:#2F6B45;
+  --ok-bg:#E4F0E6;
+  --warn:#9A6C10;
+  --warn-bg:#FBF0D8;
+  --danger:#9A2E28;
+  --danger-bg:#F7E3E1;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --serif: Georgia, "Times New Roman", Cambria, serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink-900);
+  font-size:14px;
+  line-height:1.5;
+}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:13px;}
+a{color:inherit;}
+
+#shell{display:flex;min-height:100vh;}
+
+/* ---------- Sidebar ---------- */
+#sidebar{
+  width:246px;
+  min-width:246px;
+  background:var(--navy-900);
+  color:var(--white);
+  display:flex;
+  flex-direction:column;
+  padding:22px 16px 16px;
+}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:4px;padding:0 4px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:6px;
+  background:var(--gold-500);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--navy-900);font-weight:700;font-size:15px;font-family:var(--serif);
+  flex:none;
+}
+.brand-name{font-size:16.5px;font-weight:700;letter-spacing:.2px;}
+.brand-sub{font-size:10.5px;color:#AEBBD1;margin-top:1px;}
+#sidebar .tagline{font-size:11px;color:#8496B4;margin:10px 4px 20px;line-height:1.5;border-top:1px solid #1F3357;padding-top:14px;}
+
+.steps{list-style:none;margin:0;padding:0;flex:1;}
+.step-item{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:10px 8px;border-radius:8px;margin-bottom:2px;
+  cursor:pointer;
+  border:1px solid transparent;
+}
+.step-item:hover{background:#152A4A;}
+.step-item.active{background:var(--maroon-700);}
+.step-item.locked{cursor:not-allowed;opacity:.42;}
+.step-num{
+  width:22px;height:22px;border-radius:50%;
+  background:#1F3357;color:#C7D3E5;
+  font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  flex:none;margin-top:1px;
+}
+.step-item.active .step-num{background:var(--gold-500);color:var(--navy-900);}
+.step-item.done .step-num{background:var(--ok);color:#fff;}
+.step-item.done .step-num::after{content:"✓";}
+.step-item.done .step-num{font-size:0;}
+.step-item.done .step-num::after{font-size:12px;}
+.step-label{font-size:12.5px;font-weight:600;color:#EAEEF5;}
+.step-desc{font-size:10.5px;color:#8FA0BC;margin-top:1px;}
+.step-item.active .step-label,.step-item.active .step-desc{color:#fff;}
+
+#sidebar .footer-credit{
+  font-size:10px;color:#6C7D9B;text-align:center;
+  border-top:1px solid #1F3357;padding-top:12px;margin-top:8px;
+}
+#sidebar .footer-credit b{color:var(--gold-500);}
+
+/* ---------- Main ---------- */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;}
+#topbar{
+  background:var(--white);
+  border-bottom:1px solid var(--paper-line);
+  padding:14px 30px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;
+}
+#topbar .tb-left{display:flex;align-items:center;gap:12px;}
+#topbar h1{font-size:17px;margin:0;font-weight:700;color:var(--navy-900);}
+.badge{
+  font-size:10.5px;font-weight:700;letter-spacing:.3px;
+  padding:3px 9px;border-radius:20px;
+  background:var(--gold-100);color:var(--gold-600);
+}
+.badge.navy{background:var(--navy-800);color:#fff;}
+.badge.muted{background:#EEEAE0;color:var(--ink-600);}
+#topbar .tb-right{font-size:12px;color:var(--ink-600);text-align:right;}
+#content{flex:1;padding:26px 32px 60px;overflow-y:auto;}
+
+.panel{
+  background:var(--white);
+  border:1px solid var(--paper-line);
+  border-radius:10px;
+  padding:22px 24px;
+  margin-bottom:18px;
+}
+.panel h2{font-size:15px;margin:0 0 4px;color:var(--navy-900);font-weight:700;}
+.panel .hint{font-size:12px;color:var(--ink-600);margin:0 0 16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 20px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:4px;}
+.field label{font-size:11.5px;font-weight:600;color:var(--ink-600);}
+.field input,.field select,.field textarea{
+  border:1px solid #D8D2C2;border-radius:6px;padding:8px 10px;
+  background:#FEFDFA;color:var(--ink-900);
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--maroon-600);
+}
+.field textarea{resize:vertical;min-height:56px;}
+.field .note{font-size:10.5px;color:var(--ink-400);}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border-radius:7px;padding:9px 16px;font-size:13px;font-weight:600;
+  border:1px solid transparent;
+}
+.btn-primary{background:var(--maroon-700);color:#fff;}
+.btn-primary:hover{background:var(--maroon-600);}
+.btn-secondary{background:#fff;color:var(--navy-900);border-color:#CBC3AC;}
+.btn-secondary:hover{background:#F3EFE4;}
+.btn-gold{background:var(--gold-500);color:var(--navy-900);}
+.btn-gold:hover{background:var(--gold-600);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+
+/* Upload */
+.dropzone{
+  border:2px dashed #C9BF9F;border-radius:10px;
+  padding:34px 20px;text-align:center;background:#FDFBF5;
+  cursor:pointer;
+}
+.dropzone.drag{border-color:var(--maroon-600);background:var(--maroon-100);}
+.dropzone .dz-icon{font-size:26px;margin-bottom:8px;}
+.dropzone h3{margin:0 0 4px;font-size:14px;color:var(--navy-900);}
+.dropzone p{margin:0;font-size:12px;color:var(--ink-600);}
+.filelist{margin-top:14px;}
+.file-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;border:1px solid var(--paper-line);border-radius:7px;
+  margin-bottom:7px;font-size:12.5px;background:#FEFDF9;
+}
+.file-row .fr-name{font-weight:600;color:var(--navy-900);}
+.file-row .fr-meta{color:var(--ink-600);font-size:11px;margin-top:1px;}
+.file-row .fr-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;}
+.fr-status.ok{background:var(--ok-bg);color:var(--ok);}
+.fr-status.warn{background:var(--warn-bg);color:var(--warn);}
+.fr-status.err{background:var(--danger-bg);color:var(--danger);}
+
+/* Tables */
+table.tbtable{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.tbtable th{
+  text-align:left;background:var(--navy-900);color:#fff;
+  padding:8px 10px;font-size:11px;letter-spacing:.2px;position:sticky;top:0;
+}
+table.tbtable td{padding:7px 10px;border-bottom:1px solid var(--paper-line);vertical-align:middle;}
+table.tbtable tr:hover td{background:#FBF8EF;}
+table.tbtable td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+table.tbtable td.neg{color:var(--danger);}
+table.tbtable tfoot td{font-weight:700;border-top:2px solid var(--navy-900);border-bottom:none;background:#F5F1E6;}
+.tb-wrap{max-height:520px;overflow:auto;border:1px solid var(--paper-line);border-radius:8px;}
+select.cls-select{font-size:11.5px;padding:4px 6px;border-radius:5px;border:1px solid #D8D2C2;background:#fff;}
+select.cls-select.unclassified{border-color:var(--warn);background:var(--warn-bg);}
+
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.toolbar input[type=text]{width:220px;}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.stat-card{
+  background:#fff;border:1px solid var(--paper-line);border-radius:9px;
+  padding:12px 16px;min-width:150px;flex:1;
+}
+.stat-card .sc-label{font-size:10.5px;color:var(--ink-600);font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
+.stat-card .sc-value{font-size:20px;font-weight:700;color:var(--navy-900);margin-top:4px;font-variant-numeric:tabular-nums;}
+.stat-card.accent{border-left:4px solid var(--gold-500);}
+.stat-card.good .sc-value{color:var(--ok);}
+.stat-card.bad .sc-value{color:var(--danger);}
+
+/* anomalies */
+.flag-card{
+  border:1px solid var(--paper-line);border-left:4px solid var(--ink-400);
+  border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fff;
+}
+.flag-card.high{border-left-color:var(--danger);}
+.flag-card.medium{border-left-color:var(--warn);}
+.flag-card.low{border-left-color:var(--gold-500);}
+.flag-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.flag-title{font-weight:700;font-size:13px;color:var(--navy-900);}
+.sev-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:.3px;}
+.sev-pill.high{background:var(--danger-bg);color:var(--danger);}
+.sev-pill.medium{background:var(--warn-bg);color:var(--warn);}
+.sev-pill.low{background:var(--gold-100);color:var(--gold-600);}
+.flag-body{font-size:12px;color:var(--ink-600);margin-top:5px;}
+
+/* FS + report */
+.doc{
+  background:#fff;border:1px solid var(--paper-line);border-radius:4px;
+  font-family:var(--serif);color:var(--ink-900);
+  max-width:760px;margin:0 auto 22px;padding:44px 52px;
+}
+.doc h2.doc-title{font-size:16px;text-align:center;margin:0 0 2px;font-weight:700;}
+.doc .doc-sub{text-align:center;font-size:12px;color:var(--ink-600);margin:0 0 22px;font-style:italic;}
+.doc .doc-heading{font-size:14px;font-weight:700;margin:22px 0 10px;border-bottom:1px solid var(--ink-900);padding-bottom:4px;}
+.doc p{font-size:12.5px;line-height:1.7;margin:0 0 10px;text-align:justify;}
+table.fstable{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;}
+table.fstable td,table.fstable th{padding:4px 4px;}
+table.fstable th{border-bottom:1px solid var(--ink-900);font-weight:700;text-align:right;}
+table.fstable th.label-col,table.fstable td.label-col{text-align:left;}
+table.fstable td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+table.fstable tr.total td{border-top:1px solid var(--ink-900);font-weight:700;}
+table.fstable tr.grandtotal td{border-top:2px solid var(--ink-900);border-bottom:3px double var(--ink-900);font-weight:700;}
+table.fstable tr.section td{font-weight:700;padding-top:10px;}
+.front-cover{text-align:center;padding:70px 40px;}
+.front-cover .fc-name{font-size:22px;font-weight:700;letter-spacing:.3px;}
+.front-cover .fc-sub{font-size:13px;margin-top:14px;letter-spacing:1px;}
+.front-cover .fc-year{font-size:12.5px;margin-top:4px;}
+.front-cover .fc-firm{margin-top:70px;font-size:12.5px;color:var(--ink-600);}
+.gold-rule{height:3px;width:70px;background:var(--gold-500);margin:16px auto;}
+.sig-block{display:flex;justify-content:space-between;margin-top:34px;gap:30px;}
+.sig-line{border-top:1px solid var(--ink-900);padding-top:5px;font-size:11.5px;width:220px;}
+.draft-stamp{
+  display:inline-block;border:2px solid var(--maroon-700);color:var(--maroon-700);
+  font-family:var(--sans);font-weight:700;font-size:11px;letter-spacing:2px;
+  padding:4px 12px;border-radius:4px;transform:rotate(-3deg);margin-bottom:14px;
+}
+
+.empty-note{
+  border:1px dashed #C9BF9F;border-radius:8px;padding:16px 18px;
+  font-size:12.5px;color:var(--ink-600);background:#FDFBF5;
+}
+.section-title{font-size:12px;font-weight:700;color:var(--ink-600);text-transform:uppercase;letter-spacing:.4px;margin:22px 0 10px;}
+.pill-tab{display:inline-flex;gap:6px;background:#F1ECDD;border-radius:8px;padding:3px;margin-bottom:16px;}
+.pill-tab button{
+  border:none;background:transparent;padding:7px 14px;border-radius:6px;
+  font-size:12.5px;font-weight:600;color:var(--ink-600);
+}
+.pill-tab button.active{background:var(--navy-900);color:#fff;}
+
+/* ---------- Home / role selection ---------- */
+#homeScreen{
+  min-height:100vh;background:var(--navy-900);
+  display:flex;flex-direction:column;align-items:center;
+  padding:56px 24px 40px;
+}
+.home-hero{text-align:center;color:#fff;margin-bottom:40px;max-width:640px;}
+.home-mark{
+  width:56px;height:56px;border-radius:12px;background:var(--gold-500);color:var(--navy-900);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+  font-family:var(--serif);font-weight:700;font-size:26px;
+}
+.home-hero h1{font-family:var(--serif);font-size:34px;margin:0 0 8px;font-weight:700;letter-spacing:.3px;}
+.home-hero .home-tagline{font-size:15px;color:#C7D3E5;margin:0 0 6px;}
+.home-hero .home-credit{font-size:11.5px;color:var(--gold-500);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;}
+.role-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(200px,240px));gap:16px;
+  max-width:1040px;width:100%;
+}
+@media (max-width:920px){.role-grid{grid-template-columns:repeat(2,1fr);max-width:520px;}}
+.role-card{
+  background:var(--navy-800);border:1px solid #24405F;border-radius:12px;
+  padding:20px 18px;color:#fff;display:flex;flex-direction:column;
+}
+.role-card .rc-avatar{
+  width:38px;height:38px;border-radius:50%;background:var(--maroon-700);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+  margin-bottom:12px;
+}
+.role-card h3{font-size:14.5px;margin:0 0 6px;}
+.role-card .rc-blurb{font-size:11.5px;color:#AEBBD1;line-height:1.55;margin:0 0 12px;flex:1;}
+.role-card ul{margin:0 0 16px;padding-left:16px;font-size:11px;color:#C7D3E5;line-height:1.7;}
+.role-card button{
+  background:var(--gold-500);color:var(--navy-900);border:none;border-radius:7px;
+  padding:9px 0;font-size:12.5px;font-weight:700;width:100%;
+}
+.role-card button:hover{background:var(--gold-600);}
+.matrix-toggle-wrap{margin-top:34px;text-align:center;}
+.matrix-toggle-wrap button{
+  background:transparent;border:1px solid #3A5578;color:#C7D3E5;
+  border-radius:7px;padding:9px 18px;font-size:12.5px;font-weight:600;
+}
+.matrix-toggle-wrap button:hover{border-color:var(--gold-500);color:var(--gold-500);}
+.matrix-wrap{max-width:1040px;width:100%;margin-top:22px;overflow-x:auto;border-radius:10px;border:1px solid #24405F;}
+table.permtable{width:100%;border-collapse:collapse;font-size:11.5px;background:var(--navy-800);}
+table.permtable th{background:#0E223E;color:#fff;padding:9px 10px;text-align:center;font-size:11px;position:sticky;top:0;}
+table.permtable th:first-child{text-align:left;}
+table.permtable td{padding:8px 10px;border-top:1px solid #1F3357;color:#DCE3EE;text-align:center;white-space:nowrap;}
+table.permtable td:first-child{text-align:left;white-space:normal;color:#fff;font-weight:600;}
+table.permtable td.yes{color:#7FD79A;font-weight:700;}
+table.permtable td.no{color:#5F7396;}
+table.permtable tr.bold-row td:first-child{color:var(--gold-500);}
+
+/* role pill in topbar */
+.role-pill{display:flex;align-items:center;gap:8px;}
+.role-pill .rp-avatar{
+  width:26px;height:26px;border-radius:50%;background:var(--maroon-700);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;
+}
+.role-pill .rp-name{font-size:12px;font-weight:700;color:var(--navy-900);}
+.role-pill .rp-switch{font-size:11px;color:var(--maroon-700);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-weight:600;}
+
+/* review points */
+.rp-card{border:1px solid var(--paper-line);border-radius:8px;padding:11px 13px;margin-bottom:8px;background:#fff;}
+.rp-card.open{border-left:3px solid var(--warn);}
+.rp-card.cleared{border-left:3px solid var(--ok);opacity:.75;}
+.rp-head{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-600);margin-bottom:3px;}
+.rp-text{font-size:12.5px;color:var(--ink-900);}
+.rp-resp{font-size:11.5px;color:var(--ink-600);margin-top:6px;padding-top:6px;border-top:1px dashed var(--paper-line);}
+.workflow-badge{
+  display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+  padding:4px 10px;border-radius:14px;background:var(--gold-100);color:var(--gold-600);
+  margin-bottom:12px;
+}
+.locked-note{
+  border:1px solid var(--paper-line);border-radius:8px;background:#F6F3E9;
+  padding:12px 14px;font-size:12.5px;color:var(--ink-600);
+}
+.roadmap-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--paper-line);font-size:12px;}
+.roadmap-row:last-child{border-bottom:none;}
+.roadmap-row .rr-role{color:var(--ink-600);font-size:11px;}
+
+@media print{
+  #sidebar,#topbar,.no-print{display:none !important;}
+  #content{padding:0;}
+  .doc{border:none;box-shadow:none;max-width:100%;padding:20px 0;page-break-after:always;}
+}
+</style>
+</head>
+<body>
+<div id="homeScreen"></div>
+<div id="shell" style="display:none;">
+
+  <div id="sidebar">
+    <div class="brand" id="brandHome" style="cursor:pointer;">
+      <div class="brand-mark">T</div>
+      <div>
+        <div class="brand-name">Tathmini AI</div>
+        <div class="brand-sub">Audit Analytics Prototype</div>
+      </div>
+    </div>
+    <div class="tagline">GL → Trial Balance → Financial Statements → Audit Report, in one working pipeline.</div>
+    <ul class="steps" id="stepsList"></ul>
+    <div class="footer-credit">Built on <b>IwazoLab</b> infrastructure</div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="tb-left">
+        <h1 id="tbClientName">Tathmini AI</h1>
+        <span class="badge navy" id="tbFramework">No client yet</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div class="tb-right" id="tbRight"></div>
+        <div class="role-pill" id="rolePill"></div>
+      </div>
+    </div>
+    <div id="content"></div>
+  </div>
+
+</div>
+
+<script>
+/* ============================= STATE ============================= */
+const STEP_DEFS = [
+  {key:'profile', label:'Client & auditor profile', desc:'Pre-audit setup'},
+  {key:'upload', label:'Upload data', desc:'GL, TB, bank, Mpesa'},
+  {key:'tb', label:'Trial balance', desc:'Ledger structuring'},
+  {key:'anomalies', label:'Risk & anomalies', desc:'AI review agent'},
+  {key:'fs', label:'Financial statements', desc:'SCI, SFP builder'},
+  {key:'report', label:'Audit report', desc:'Draft report'},
+  {key:'portal', label:'Client portal', desc:'Store & export'}
+];
+
+const state = {
+  step: 'profile',
+  profile: {
+    company:'', regNo:'', kraPin:'', industry:'', location:'', yearEnd:'',
+    framework:'IFRS', priorYearEnabled:true,
+    directors:'', secretary:'', regOffice:'', bankers:'',
+    firm:'', partner:'', practiceNo:'', firmCity:'Nairobi'
+  },
+  profileSaved:false,
+  files:[],            // {name,size,status,detail}
+  accounts:{},         // code|name -> {code,name,section,classification,amount,priorAmount,sources:[]}
+  controlTotals:{income:null, expenses:null},
+  reportGeneratedAt:null,
+  currentRole:null,
+  acceptance:{status:'pending', history:[]},      // pending -> recommended -> approved
+  reviewPoints:[],                                 // {id, step, text, raisedByRole, targetRole, status, response}
+  manualFindings:[],                               // {id, title, body, loggedByRole}
+  reportWorkflow:{status:'draft', history:[]},      // draft -> senior_ready -> manager_approved -> signed
+  fileLock:{status:'open', history:[]}              // open -> lock_recommended -> locked
+};
+
+/* ---------- Roles & permissions ---------- */
+const ROLE_HIERARCHY = ['associate','senior','manager','partner'];
+const ROLE_META = {
+  associate:{label:'Audit Associate', initials:'AA',
+    blurb:'Performs fieldwork — enters client data, builds working papers, logs findings and responds to review points raised on their work.',
+    highlights:['Builds trial balance & working papers','Logs findings and queries','Responds to Senior review points']},
+  senior:{label:'Audit Senior', initials:'AS',
+    blurb:'Runs day-to-day fieldwork, drafts the audit plan and report, and reviews Associate work before it goes to the Manager.',
+    highlights:['Creates engagements & drafts audit plan','Reviews Associate work','Drafts the audit report']},
+  manager:{label:'Audit Manager', initials:'AM',
+    blurb:'Assigns the team, reviews Senior work, recommends client acceptance and completion, and reviews the draft report.',
+    highlights:['Assigns audit team','Reviews Senior work','Recommends acceptance & file lock']},
+  partner:{label:'Audit Partner', initials:'AP',
+    blurb:'Final responsibility for the engagement — approves client acceptance, reviews Manager work, and is the only role that can sign the audit opinion.',
+    highlights:['Approves client acceptance','Signs & issues the audit opinion','Finalizes and locks the file']}
+};
+function roleIdx(r){ return ROLE_HIERARCHY.indexOf(r); }
+function roleAbove(r){ return roleIdx(state.currentRole) > roleIdx(r); }
+function roleAtLeast(r){ return roleIdx(state.currentRole) >= roleIdx(r); }
+function roleLabel(r){ return ROLE_META[r] ? ROLE_META[r].label : r; }
+
+const PERMISSIONS = [
+  {activity:'Create prospective client', bold:true, vals:{associate:'❌',senior:'✅',manager:'✅',partner:'✅'}},
+  {activity:'Enter client basic information', vals:{associate:'✅',senior:'✅',manager:'✅',partner:'✅'}},
+  {activity:'Perform client acceptance information gathering', vals:{associate:'✅',senior:'✅',manager:'✅',partner:'✅'}},
+  {activity:'Approve client acceptance', bold:true, vals:{associate:'❌',senior:'❌',manager:'Recommend',partner:'✅'}},
+  {activity:'Create audit engagement', vals:{associate:'❌',senior:'✅',manager:'✅',partner:'Approve'}},
+  {activity:'Assign audit team', vals:{associate:'❌',senior:'Recommend',manager:'✅',partner:'Approve/oversight'}},
+  {activity:'Create audit plan', vals:{associate:'❌',senior:'Draft',manager:'Review/approve',partner:'Final approval'}},
+  {activity:'Create audit working paper', vals:{associate:'✅',senior:'✅',manager:'Review',partner:'Review selected/high-risk'}},
+  {activity:'Create audit finding/exception', vals:{associate:'✅',senior:'✅',manager:'✅',partner:'Review significant'}},
+  {activity:'Create audit query/clearance', bold:true, vals:{associate:'✅',senior:'✅',manager:'✅',partner:'As needed'}},
+  {activity:'Respond to audit query', vals:{associate:'✅',senior:'✅',manager:'✅',partner:'As needed'}},
+  {activity:'Review Associate work', vals:{associate:'❌',senior:'✅',manager:'✅',partner:'Oversight'}},
+  {activity:'Review Senior work', vals:{associate:'❌',senior:'❌',manager:'✅',partner:'Review significant matters'}},
+  {activity:'Review Manager work', vals:{associate:'❌',senior:'❌',manager:'❌',partner:'✅'}},
+  {activity:'Raise review points', vals:{associate:'❌',senior:'✅',manager:'✅',partner:'✅'}},
+  {activity:'Clear review points', vals:{associate:'Owner responds',senior:'Clears Associate points',manager:'Clears Senior points',partner:'Final/significant points'}},
+  {activity:'Mark audit section complete', vals:{associate:'❌',senior:'✅',manager:'✅',partner:'Final oversight'}},
+  {activity:'Prepare completion checklist', vals:{associate:'❌',senior:'Draft',manager:'Review',partner:'Approve'}},
+  {activity:'Prepare draft audit report', vals:{associate:'❌',senior:'Draft/support',manager:'Review',partner:'Final responsibility'}},
+  {activity:'Sign/issue audit opinion', bold:true, vals:{associate:'❌',senior:'❌',manager:'❌',partner:'✅'}},
+  {activity:'Reopen completed audit file', vals:{associate:'❌',senior:'❌',manager:'Recommend',partner:'Approve'}},
+  {activity:'Finalize/lock audit file', vals:{associate:'❌',senior:'❌',manager:'Recommend',partner:'✅'}}
+];
+
+const CLASS_OPTIONS = [
+  {v:'revenue', l:'Revenue', nature:'cr', group:'sci'},
+  {v:'cogs', l:'Cost of sales', nature:'dr', group:'sci'},
+  {v:'other_income', l:'Other income', nature:'cr', group:'sci'},
+  {v:'opex', l:'Operating expense', nature:'dr', group:'sci'},
+  {v:'finance_cost', l:'Finance cost', nature:'dr', group:'sci'},
+  {v:'tax', l:'Taxation', nature:'dr', group:'sci'},
+  {v:'nca', l:'Non-current asset', nature:'dr', group:'sfp'},
+  {v:'ca', l:'Current asset', nature:'dr', group:'sfp'},
+  {v:'equity', l:'Equity', nature:'cr', group:'sfp'},
+  {v:'ncl', l:'Non-current liability', nature:'cr', group:'sfp'},
+  {v:'cl', l:'Current liability', nature:'cr', group:'sfp'},
+  {v:'unclassified', l:'Unclassified — review', nature:null, group:'none'}
+];
+function clsMeta(v){return CLASS_OPTIONS.find(c=>c.v===v)||CLASS_OPTIONS[CLASS_OPTIONS.length-1];}
+
+/* ============================= UTIL ============================= */
+function fmt(n){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  const r = Math.round(n);
+  if(r===0) return '-';
+  const abs = Math.abs(r).toLocaleString('en-US');
+  return r<0 ? '('+abs+')' : abs;
+}
+function fmtSigned(n){ return fmt(n); }
+function esc(s){ return (s===undefined||s===null)?'':String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function accountsArr(){ return Object.values(state.accounts).sort((a,b)=> (a.code||'zzz').localeCompare(b.code||'zzz') || a.name.localeCompare(b.name)); }
+
+/* classification heuristic */
+function classify(name, sectionHint){
+  const n = (name||'').toLowerCase();
+  const test = arr => arr.some(k=>n.includes(k));
+  if(test(['accumulated depre','acc. depr','acc depr','accum. depr'])) return 'nca';
+  if(test(['deferred tax'])) return 'nca';
+  if(test(['revenue','sales','turnover','service income','tuition','grant income','service billing'])) return 'revenue';
+  if(test(['cost of sales','cogs','direct cost','cost of goods'])) return 'cogs';
+  if(test(['other income','interest income','dividend income','rent income','rent receipt','gain on disposal','gains/loss on disposal','sundry income','miscellaneous income','in-kind charitable'])) return 'other_income';
+  if(test(['finance cost','interest expense','bank charges','loan interest','interest on loan'])) return 'finance_cost';
+  if(test(['taxation','corporation tax','income tax expense'])) return 'tax';
+  if(test(['share capital','retained earnings','revenue reserve','accumulated fund','general reserve','capital reserve','shareholder funds',' equity'])) return 'equity';
+  if(test(['non-current loan','long-term loan','long term borrowing','debenture'])) return 'ncl';
+  if(test(['due to related'])) return 'cl';
+  if(test(['loan','borrowing','overdraft','term loan'])) return 'cl';
+  if(test(['withholding tax'])) return test(['asset'])? 'ca' : 'cl';
+  if(test(['payable','creditor','accrual','provision for','vat control','nhif','nssf','sacco deduction','helb','paye','rent deposit','unspecified deposit'])) return 'cl';
+  if(test(['receivable','debtor','prepaid','prepayment','due from related','telephone deposit'])) return 'ca';
+  if(test(['cash','bank ','petty cash','mpesa','m-pesa','fixed deposit account','current account'])) return 'ca';
+  if(test(['inventory','stock in trade',' stock'])) return 'ca';
+  if(test(['deposit for','deposits for'])) return 'nca';
+  if(test(['property, plant','furniture','motor vehicle','office equipment','computers & printers','computer & printer','building cost','plant and machinery','work in progress','intangible','investment','land cost','acquistion cost','acqu','aqcu','airport complex','legal property'])) return 'nca';
+  if(sectionHint==='Expenses' || test(['salar','wage','staff cost','payroll','gross pay','staff medical','staff training','staff welfare','property maintenance','land rent','office rent','parking fee','repairs & maintenance','repair and maintenance','insurance','travel expense','depreciation','amortisation','amortization','armotisation','motor running','postage','telephone expense','security expense','audit fee','legal and professional','professional fee','secretarial fee','subscription','donation','stationery','office expense','advertisement','entertainment','bad debt','printing','cleaning','fuel','communication','utilit'])) return 'opex';
+  if(sectionHint==='Income') return 'revenue';
+  return 'unclassified';
+}
+
+function addOrMergeAccount({code,name,amount,section,priorAmount,source}){
+  if(name===undefined||name===null) return;
+  name = String(name).trim();
+  if(!name) return;
+  const key = (code?String(code):'') + '::' + name.toLowerCase();
+  if(!state.accounts[key]){
+    state.accounts[key] = {
+      code: code?String(code):'', name, section: section||null,
+      classification: classify(name, section),
+      amount: 0, priorAmount: 0, sources:[]
+    };
+  }
+  const acc = state.accounts[key];
+  if(typeof amount==='number' && !isNaN(amount)) acc.amount += amount;
+  if(typeof priorAmount==='number' && !isNaN(priorAmount)) acc.priorAmount += priorAmount;
+  if(source && !acc.sources.includes(source)) acc.sources.push(source);
+}
+
+/* ============================= PARSING ============================= */
+function readFileAsSheets(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      try{
+        const wb = XLSX.read(e.target.result,{type:'array'});
+        const sheets = wb.SheetNames.map(n=>({
+          name:n,
+          rows: XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null})
+        }));
+        resolve(sheets);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = ()=>reject(new Error('Could not read file'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function isYearToken(v){
+  return typeof v==='string' && /^(19|20)\d{2}$/.test(v.trim()) || (typeof v==='number' && v>1900 && v<2100 && Number.isInteger(v));
+}
+
+/* Try to detect + parse a classic Code/Description/Final TB style sheet */
+function tryParseTrialBalanceSheet(sheet){
+  const rows = sheet.rows;
+  let headerIdx=-1, codeCol=-1, descCol=-1, finalCol=-1, priorCol=-1;
+  for(let i=0;i<Math.min(rows.length,60);i++){
+    const row = rows[i]||[];
+    let cCol=-1,dCol=-1;
+    row.forEach((v,ci)=>{
+      const s = (typeof v==='string')? v.trim().toLowerCase() : '';
+      if(s==='code') cCol=ci;
+      if(s==='description') dCol=ci;
+    });
+    if(cCol>=0 && dCol>=0){
+      headerIdx=i; codeCol=cCol; descCol=dCol;
+      row.forEach((v,ci)=>{
+        const s = (typeof v==='string')? v.trim().toLowerCase() : '';
+        if(s==='final tb' || s==='final balance' || s==='closing balance' || s==='balance') finalCol=ci;
+      });
+      if(finalCol<0){
+        // fallback: numeric-looking header just right of description, or "Adjustment"/"Opening Bal" combo
+        row.forEach((v,ci)=>{
+          const s = (typeof v==='string')? v.trim().toLowerCase() : '';
+          if(s==='closing tb' || s==='tb') finalCol=ci;
+        });
+      }
+      row.forEach((v,ci)=>{ if(isYearToken(v) && ci!==finalCol) priorCol=ci; });
+      break;
+    }
+  }
+  if(headerIdx<0 || finalCol<0) return null;
+  const out = [];
+  let blanks=0;
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const row = rows[i]||[];
+    const code = row[codeCol];
+    const desc = row[descCol];
+    const amt = row[finalCol];
+    const prior = priorCol>=0? row[priorCol] : null;
+    if((desc===null||desc===undefined||String(desc).trim()==='') || typeof amt!=='number'){
+      blanks++;
+      if(blanks>25) break;
+      continue;
+    }
+    blanks=0;
+    out.push({code: code!=null? String(code).trim():'', name:String(desc).trim(), amount:amt, priorAmount: typeof prior==='number'?prior:null});
+  }
+  return out.length? out : null;
+}
+
+/* Try to detect + parse QuickBooks-style "Profit and Loss Detail" export */
+function tryParseGLDetail(sheet){
+  const rows = sheet.rows;
+  let headerIdx=-1;
+  for(let i=0;i<Math.min(rows.length,20);i++){
+    const row = rows[i]||[];
+    const joined = row.map(v=> typeof v==='string'? v.trim().toLowerCase():'').join('|');
+    if(joined.includes('transaction type') && joined.includes('memo/description')) { headerIdx=i; break; }
+  }
+  if(headerIdx<0) return null;
+  const AMT_COL = 9; // 'Amount' column per QuickBooks P&L Detail layout (0-indexed)
+  let section = null;
+  const out = [];
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const row = rows[i]||[];
+    const c0 = row[0];
+    if(typeof c0 !== 'string') continue;
+    const trimmed = c0.trim();
+    const lead = c0.length - c0.replace(/^ +/,'').length;
+    if(trimmed.toLowerCase()==='income'){ section='Income'; continue; }
+    if(trimmed.toLowerCase()==='expenses' || trimmed.toLowerCase()==='expense'){ section='Expenses'; continue; }
+    const totalMatch = trimmed.match(/^total for (.+)$/i);
+    if(!totalMatch) continue;
+    const label = totalMatch[1].trim();
+    if(/^income$/i.test(label)){ /* control total */ continue; }
+    if(/^expenses?$/i.test(label)){ continue; }
+    // only accept lines whose label is a single account code (not "CODE-CODE" leaf combos)
+    const m = label.match(/^(\d{3,8})(?!-\d)\s+(.+)$/);
+    if(!m) continue;
+    const code = m[1];
+    let name = m[2].trim();
+    // strip trailing duplicate "- LOCATION" style suffix if present after a lone hyphen w/ another code
+    const amt = row[AMT_COL];
+    if(typeof amt !== 'number') continue;
+    out.push({code, name, amount: section==='Income' ? -Math.abs(amt) : Math.abs(amt), section});
+  }
+  return out.length? out : null;
+}
+
+async function processFile(file, asPriorYear){
+  const fileEntry = {id:uid(), name:file.name, size:file.size, status:'processing', detail:'Reading…'};
+  state.files.push(fileEntry);
+  renderStep();
+  try{
+    const sheets = await readFileAsSheets(file);
+    let matched = 0, rowsAdded = 0;
+    for(const sheet of sheets){
+      let parsed = tryParseTrialBalanceSheet(sheet);
+      let kind = 'Trial balance';
+      if(!parsed){ parsed = tryParseGLDetail(sheet); kind = 'GL detail'; }
+      if(!parsed) continue;
+      matched++;
+      parsed.forEach(r=>{
+        if(asPriorYear){
+          addOrMergeAccount({code:r.code, name:r.name, priorAmount:r.amount, section:r.section, source:file.name});
+        } else {
+          addOrMergeAccount({code:r.code, name:r.name, amount:r.amount, priorAmount:r.priorAmount, section:r.section, source:file.name});
+        }
+        rowsAdded++;
+      });
+      fileEntry.detail = `${kind} detected in "${sheet.name}" — ${parsed.length} accounts`;
+    }
+    if(matched===0){
+      fileEntry.status='err';
+      fileEntry.detail='No recognizable trial balance or general ledger structure found in this file.';
+    } else {
+      fileEntry.status='ok';
+      fileEntry.detail += ` · ${rowsAdded} lines merged`;
+    }
+  }catch(err){
+    fileEntry.status='err';
+    fileEntry.detail='Parsing error: '+err.message;
+  }
+  recomputeControlTotals();
+  renderStep();
+}
+
+function recomputeControlTotals(){
+  let inc=0, exp=0;
+  accountsArr().forEach(a=>{
+    if(a.section==='Income') inc += Math.abs(a.amount);
+    if(a.section==='Expenses') exp += Math.abs(a.amount);
+  });
+  state.controlTotals.income = inc || null;
+  state.controlTotals.expenses = exp || null;
+}
+
+/* ============================= COMPUTATIONS ============================= */
+function sumBy(cls){
+  return accountsArr().filter(a=>a.classification===cls).reduce((s,a)=>s+a.amount,0);
+}
+function sumByPrior(cls){
+  return accountsArr().filter(a=>a.classification===cls).reduce((s,a)=>s+(a.priorAmount||0),0);
+}
+function computeSCI(){
+  const revenue = -sumBy('revenue'), cogs = sumBy('cogs'), otherIncome = -sumBy('other_income'),
+        opex = sumBy('opex'), financeCost = sumBy('finance_cost'), tax = sumBy('tax');
+  const grossProfit = revenue - cogs;
+  const operatingProfit = grossProfit + otherIncome - opex;
+  const pbt = operatingProfit - financeCost;
+  const net = pbt - tax;
+  const p = {
+    revenue: -sumByPrior('revenue'), cogs: sumByPrior('cogs'), otherIncome: -sumByPrior('other_income'),
+    opex: sumByPrior('opex'), financeCost: sumByPrior('finance_cost'), tax: sumByPrior('tax')
+  };
+  p.grossProfit = p.revenue - p.cogs;
+  p.operatingProfit = p.grossProfit + p.otherIncome - p.opex;
+  p.pbt = p.operatingProfit - p.financeCost;
+  p.net = p.pbt - p.tax;
+  return {revenue,cogs,otherIncome,opex,financeCost,tax,grossProfit,operatingProfit,pbt,net,prior:p};
+}
+function computeSFP(){
+  const nca = sumBy('nca'), ca = sumBy('ca'), equity = -sumBy('equity'),
+        ncl = -sumBy('ncl'), cl = -sumBy('cl');
+  const totalAssets = nca+ca;
+  const sci = computeSCI();
+  const equityWithProfit = equity + sci.net;
+  const totalEquityLiab = equityWithProfit + ncl + cl;
+  const p = {
+    nca: sumByPrior('nca'), ca: sumByPrior('ca'), equity: -sumByPrior('equity'),
+    ncl: -sumByPrior('ncl'), cl: -sumByPrior('cl')
+  };
+  p.totalAssets = p.nca + p.ca;
+  p.totalEquityLiab = p.equity + p.ncl + p.cl;
+  return {nca,ca,equity:equityWithProfit,ncl,cl,totalAssets,totalEquityLiab,hasData:(nca+ca+equity+ncl+cl)!==0, prior:p};
+}
+function hasBalanceSheetData(){
+  return accountsArr().some(a=>['nca','ca','equity','ncl','cl'].includes(a.classification));
+}
+function hasIncomeStatementData(){
+  return accountsArr().some(a=>['revenue','cogs','other_income','opex','finance_cost','tax'].includes(a.classification));
+}
+
+function computeAnomalies(){
+  const flags = [];
+  const accs = accountsArr();
+  if(accs.length===0) return flags;
+
+  // Dr/Cr sign vs classification mismatch
+  accs.forEach(a=>{
+    const meta = clsMeta(a.classification);
+    if(meta.nature==='cr' && a.amount>0){
+      flags.push({sev:'medium', title:`Unexpected debit balance: ${a.name}`,
+        body:`Classified as ${meta.l} (normally a credit balance) but carries a debit balance of ${fmt(a.amount)}. Confirm this is not a misposting or reversed entry.`});
+    }
+    if(meta.nature==='dr' && a.amount<0){
+      flags.push({sev:'medium', title:`Unexpected credit balance: ${a.name}`,
+        body:`Classified as ${meta.l} (normally a debit balance) but carries a credit balance of ${fmt(a.amount)}. Confirm this is not a misposting or reversed entry.`});
+    }
+  });
+
+  // Unclassified accounts
+  const unclassified = accs.filter(a=>a.classification==='unclassified');
+  if(unclassified.length){
+    flags.push({sev: unclassified.length>5?'high':'medium', title:`${unclassified.length} account${unclassified.length>1?'s':''} could not be auto-classified`,
+      body:`Tathmini's classifier could not confidently map these to a financial statement line. Review and assign a classification on the Trial Balance step: ${unclassified.slice(0,6).map(a=>a.name).join(', ')}${unclassified.length>6?'…':''}.`});
+  }
+
+  // Missing account codes
+  const noCode = accs.filter(a=>!a.code);
+  if(noCode.length){
+    flags.push({sev:'low', title:`${noCode.length} line${noCode.length>1?'s':''} missing an account code`,
+      body:`These entries were picked up by description only, with no chart-of-accounts code. Consider standardising the chart of accounts before next period's import.`});
+  }
+
+  // Large balances — top 3 by magnitude, flagged if >20% of total absolute ledger
+  const totalAbs = accs.reduce((s,a)=>s+Math.abs(a.amount),0) || 1;
+  accs.slice().sort((a,b)=>Math.abs(b.amount)-Math.abs(a.amount)).slice(0,3).forEach(a=>{
+    const pct = Math.abs(a.amount)/totalAbs*100;
+    if(pct>=15){
+      flags.push({sev:pct>=30?'high':'medium', title:`Concentration risk: ${a.name}`,
+        body:`This single balance represents ${pct.toFixed(1)}% of total absolute ledger value (${fmt(a.amount)}). Large single-account concentrations warrant closer substantive testing.`});
+    }
+  });
+
+  // Prior year variance (only if prior data present)
+  accs.filter(a=>a.priorAmount).forEach(a=>{
+    if(a.priorAmount===0) return;
+    const variance = (a.amount - a.priorAmount)/Math.abs(a.priorAmount)*100;
+    if(Math.abs(variance)>=75 && Math.abs(a.amount-a.priorAmount)>=50000){
+      flags.push({sev: Math.abs(variance)>=150?'high':'medium', title:`Large year-on-year movement: ${a.name}`,
+        body:`Moved ${variance>0?'up':'down'} ${Math.abs(variance).toFixed(0)}% versus prior year (${fmt(a.priorAmount)} → ${fmt(a.amount)}). Obtain an explanation from management and corroborating evidence.`});
+    }
+  });
+
+  // TB balance check
+  const balCheck = tbBalanceCheck();
+  if(balCheck.status!=='balanced'){
+    flags.push({sev: balCheck.status==='review'?'low':'high', title:'Trial balance does not sum to nil', body: balCheck.message});
+  }
+
+  return flags.sort((a,b)=>({high:0,medium:1,low:2}[a.sev]-{high:0,medium:1,low:2}[b.sev]));
+}
+
+function tbBalanceCheck(){
+  const accs = accountsArr();
+  const sum = accs.reduce((s,a)=>s+a.amount,0);
+  const totalAbs = accs.reduce((s,a)=>s+Math.abs(a.amount),0) || 1;
+  const tolerance = Math.max(2, totalAbs*0.0005);
+  if(Math.abs(sum)<=tolerance){
+    return {status:'balanced', message:`Total debits equal total credits (difference ${fmt(sum)}).`};
+  }
+  const sci = computeSCI();
+  if(Math.abs(Math.abs(sum) - Math.abs(sci.net)) <= tolerance && sci.net!==0){
+    return {status:'review', message:`Debits exceed credits by ${fmt(sum)}, which matches the computed net profit/(loss) for the period of ${fmt(sci.net)}. This typically means the current-year result has not yet been transferred to retained earnings/accumulated fund — confirm against the equity note.`};
+  }
+  return {status:'unbalanced', message:`Debits and credits differ by ${fmt(sum)}, with no obvious explanation (does not match computed net profit). Investigate before drafting financial statements.`};
+}
+
+/* ============================= RENDER: SHELL ============================= */
+function stepIndex(key){ return STEP_DEFS.findIndex(s=>s.key===key); }
+function stepUnlocked(key){
+  const idx = stepIndex(key);
+  if(idx===0) return true;
+  if(idx===1) return state.profileSaved;
+  if(idx>=2) return accountsArr().length>0;
+  return false;
+}
+function stepDone(key){
+  if(key==='profile') return state.profileSaved;
+  if(key==='upload') return accountsArr().length>0;
+  if(key==='tb') return accountsArr().length>0;
+  if(key==='anomalies') return accountsArr().length>0;
+  if(key==='fs') return accountsArr().length>0 && (hasIncomeStatementData()||hasBalanceSheetData());
+  if(key==='report') return !!state.reportGeneratedAt;
+  return false;
+}
+
+function renderSidebar(){
+  const ul = document.getElementById('stepsList');
+  ul.innerHTML = STEP_DEFS.map((s,i)=>{
+    const unlocked = stepUnlocked(s.key);
+    const active = state.step===s.key;
+    const done = stepDone(s.key) && !active;
+    const cls = ['step-item'];
+    if(active) cls.push('active');
+    if(done) cls.push('done');
+    if(!unlocked) cls.push('locked');
+    return `<li class="${cls.join(' ')}" data-step="${s.key}">
+      <div class="step-num">${i+1}</div>
+      <div>
+        <div class="step-label">${esc(s.label)}</div>
+        <div class="step-desc">${esc(s.desc)}</div>
+      </div>
+    </li>`;
+  }).join('');
+  ul.querySelectorAll('.step-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const key = el.getAttribute('data-step');
+      if(stepUnlocked(key)){ state.step=key; renderStep(); }
+    });
+  });
+}
+
+function renderTopbar(){
+  document.getElementById('tbClientName').textContent = state.profile.company ? state.profile.company : 'Tathmini AI';
+  const fw = document.getElementById('tbFramework');
+  fw.textContent = state.profileSaved ? state.profile.framework : 'No client yet';
+  const right = document.getElementById('tbRight');
+  if(state.profileSaved){
+    right.innerHTML = `Year end: <b>${esc(state.profile.yearEnd||'—')}</b> &nbsp;·&nbsp; ${accountsArr().length} accounts loaded`;
+  } else {
+    right.innerHTML = 'Create a client profile to begin';
+  }
+}
+
+/* ============================= STEP: PROFILE ============================= */
+function renderProfile(container){
+  const p = state.profile;
+  container.innerHTML = `
+    <div class="panel">
+      <h2>Client profile</h2>
+      <p class="hint">Pre-audit setup — this populates the front page, general information and directors' report of the generated audit report.</p>
+      <div class="grid2">
+        <div class="field"><label>Company name</label><input id="f_company" value="${esc(p.company)}" placeholder="Merica Holdings Limited"></div>
+        <div class="field"><label>Registration number</label><input id="f_regNo" value="${esc(p.regNo)}" placeholder="C.12345"></div>
+        <div class="field"><label>KRA PIN</label><input id="f_kraPin" value="${esc(p.kraPin)}" placeholder="P051234567X"></div>
+        <div class="field"><label>Industry</label><input id="f_industry" value="${esc(p.industry)}" placeholder="Hospitality"></div>
+        <div class="field"><label>Location</label><input id="f_location" value="${esc(p.location)}" placeholder="Nairobi, Kenya"></div>
+        <div class="field"><label>Year-end date</label><input id="f_yearEnd" type="date" value="${esc(p.yearEnd)}"></div>
+        <div class="field">
+          <label>Reporting framework</label>
+          <select id="f_framework">
+            ${['IFRS','IFRS for SMEs','IPSAS','NGO donor rules','SACCO guidelines'].map(o=>`<option ${p.framework===o?'selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Comparative period</label>
+          <select id="f_priorYear">
+            <option value="1" ${p.priorYearEnabled?'selected':''}>Include prior-year comparatives</option>
+            <option value="0" ${!p.priorYearEnabled?'selected':''}>Current year only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Additional report details (optional)</div>
+      <div class="grid2">
+        <div class="field"><label>Directors (one per line)</label><textarea id="f_directors" placeholder="Joshua C. Kulei&#10;Joseph Kitony">${esc(p.directors)}</textarea></div>
+        <div class="field"><label>Company secretary</label><input id="f_secretary" value="${esc(p.secretary)}"></div>
+        <div class="field"><label>Registered office</label><textarea id="f_regOffice" placeholder="P.O. Box 45675-00100, Nairobi">${esc(p.regOffice)}</textarea></div>
+        <div class="field"><label>Bankers (one per line)</label><textarea id="f_bankers">${esc(p.bankers)}</textarea></div>
+      </div>
+
+      <div class="section-title">Auditor details</div>
+      <div class="grid3">
+        <div class="field"><label>Audit firm</label><input id="f_firm" value="${esc(p.firm)}" placeholder="IwazoLab Audit &amp; Assurance"></div>
+        <div class="field"><label>Engagement partner</label><input id="f_partner" value="${esc(p.partner)}" placeholder="CPA Jane Doe"></div>
+        <div class="field"><label>Practice certificate no.</label><input id="f_practiceNo" value="${esc(p.practiceNo)}" placeholder="P.1905"></div>
+        <div class="field"><label>Firm city</label><input id="f_firmCity" value="${esc(p.firmCity)}"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveProfileBtn">Save profile and continue</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Client acceptance</h2>
+      <p class="hint">Basic information and acceptance information gathering are open to the whole team. Approval to accept the client sits with the Manager (recommend) and Partner (final approval).</p>
+      <div class="workflow-badge">${state.acceptance.status==='approved'?'Acceptance approved':state.acceptance.status==='recommended'?'Recommended — awaiting Partner approval':'Pending approval'}</div>
+      ${state.acceptance.history.length? `<div class="hint" style="margin-bottom:10px;">${state.acceptance.history.map(h=>esc(h)).join(' · ')}</div>` : ''}
+      ${state.acceptance.status!=='approved' && state.currentRole==='manager' ? `<button class="btn btn-secondary" id="recommendAcceptBtn">Recommend approval</button>` : ''}
+      ${state.acceptance.status!=='approved' && state.currentRole==='partner' ? `<button class="btn btn-primary" id="approveAcceptBtn">Approve client acceptance</button>` : ''}
+      ${roleAtLeast('manager')===false ? `<p class="hint" style="margin-top:8px;">As ${esc(roleLabel(state.currentRole))}, you can enter client information and gather acceptance data above, but approval requires a Manager recommendation and Partner sign-off.</p>` : ''}
+    </div>
+  `;
+  const recBtn = document.getElementById('recommendAcceptBtn');
+  if(recBtn) recBtn.addEventListener('click',()=>{
+    state.acceptance.status='recommended';
+    state.acceptance.history.push(`Recommended by ${roleLabel('manager')}`);
+    renderStep();
+  });
+  const appBtn = document.getElementById('approveAcceptBtn');
+  if(appBtn) appBtn.addEventListener('click',()=>{
+    state.acceptance.status='approved';
+    state.acceptance.history.push(`Approved by ${roleLabel('partner')}`);
+    renderStep();
+  });
+  document.getElementById('saveProfileBtn').addEventListener('click',()=>{
+    p.company = document.getElementById('f_company').value.trim();
+    p.regNo = document.getElementById('f_regNo').value.trim();
+    p.kraPin = document.getElementById('f_kraPin').value.trim();
+    p.industry = document.getElementById('f_industry').value.trim();
+    p.location = document.getElementById('f_location').value.trim();
+    p.yearEnd = document.getElementById('f_yearEnd').value;
+    p.framework = document.getElementById('f_framework').value;
+    p.priorYearEnabled = document.getElementById('f_priorYear').value==='1';
+    p.directors = document.getElementById('f_directors').value;
+    p.secretary = document.getElementById('f_secretary').value.trim();
+    p.regOffice = document.getElementById('f_regOffice').value;
+    p.bankers = document.getElementById('f_bankers').value;
+    p.firm = document.getElementById('f_firm').value.trim();
+    p.partner = document.getElementById('f_partner').value.trim();
+    p.practiceNo = document.getElementById('f_practiceNo').value.trim();
+    p.firmCity = document.getElementById('f_firmCity').value.trim();
+    if(!p.company){ alert('Enter a company name to continue.'); return; }
+    state.profileSaved = true;
+    state.step = 'upload';
+    renderAll();
+  });
+}
+
+/* ============================= STEP: UPLOAD ============================= */
+function renderUpload(container){
+  container.innerHTML = `
+    <div class="panel">
+      <h2>Upload data</h2>
+      <p class="hint">Upload the general ledger and/or trial balance. Tathmini's data parser detects the format, structures the ledger, and merges it into a running trial balance automatically.</p>
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon">⇪</div>
+        <h3>Drop files here, or click to browse</h3>
+        <p>Accepted: .xlsx, .xls, .csv — general ledger detail, trial balance, or both</p>
+        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" style="display:none;">
+      </div>
+      <div class="field" style="margin-top:14px;max-width:340px;">
+        <label>Treat next upload as</label>
+        <select id="periodSelect">
+          <option value="current">Current year figures</option>
+          <option value="prior">Prior year comparative figures</option>
+        </select>
+        <span class="note">Set this before adding a comparative-year file (e.g. last year's TB) so its balances land in the prior-year column instead of the current period.</span>
+      </div>
+      <div class="filelist" id="fileList"></div>
+    </div>
+    ${accountsArr().length ? `
+    <div class="panel">
+      <h2>Parsed so far</h2>
+      <div class="stat-row">
+        <div class="stat-card accent"><div class="sc-label">Accounts detected</div><div class="sc-value">${accountsArr().length}</div></div>
+        <div class="stat-card"><div class="sc-label">Income lines</div><div class="sc-value">${accountsArr().filter(a=>a.section==='Income').length||accountsArr().filter(a=>['revenue','other_income'].includes(a.classification)).length}</div></div>
+        <div class="stat-card"><div class="sc-label">Expense lines</div><div class="sc-value">${accountsArr().filter(a=>a.section==='Expenses').length||accountsArr().filter(a=>['cogs','opex','finance_cost','tax'].includes(a.classification)).length}</div></div>
+        <div class="stat-card"><div class="sc-label">Balance-sheet lines</div><div class="sc-value">${accountsArr().filter(a=>['nca','ca','equity','ncl','cl'].includes(a.classification)).length}</div></div>
+      </div>
+      <div class="btn-row" style="justify-content:flex-start;">
+        <button class="btn btn-primary" id="goTbBtn">Review trial balance →</button>
+      </div>
+    </div>` : ''}
+  `;
+
+  const dz = document.getElementById('dropzone');
+  const fi = document.getElementById('fileInput');
+  dz.addEventListener('click',()=>fi.click());
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+  dz.addEventListener('drop',e=>{
+    e.preventDefault(); dz.classList.remove('drag');
+    handleFiles(e.dataTransfer.files);
+  });
+  fi.addEventListener('change',e=>handleFiles(e.target.files));
+
+  function handleFiles(fileListObj){
+    const asPrior = document.getElementById('periodSelect').value==='prior';
+    Array.from(fileListObj).forEach(f=>processFile(f, asPrior));
+  }
+
+  renderFileList();
+  const goTb = document.getElementById('goTbBtn');
+  if(goTb) goTb.addEventListener('click',()=>{ state.step='tb'; renderAll(); });
+}
+
+function renderFileList(){
+  const el = document.getElementById('fileList');
+  if(!el) return;
+  el.innerHTML = state.files.slice().reverse().map(f=>`
+    <div class="file-row">
+      <div>
+        <div class="fr-name">${esc(f.name)}</div>
+        <div class="fr-meta">${esc(f.detail||'')}</div>
+      </div>
+      <div class="fr-status ${f.status==='ok'?'ok':f.status==='err'?'err':'warn'}">${f.status==='processing'?'Parsing…':f.status==='ok'?'Parsed':'Needs review'}</div>
+    </div>
+  `).join('') || '<p class="hint" style="margin-top:10px;">No files uploaded yet.</p>';
+}
+
+/* ============================= STEP: TRIAL BALANCE ============================= */
+function renderTB(container){
+  const accs = accountsArr();
+  const totalDr = accs.filter(a=>a.amount>0).reduce((s,a)=>s+a.amount,0);
+  const totalCr = accs.filter(a=>a.amount<0).reduce((s,a)=>s-a.amount,0);
+  const bal = tbBalanceCheck();
+  const canEdit = state.currentRole==='associate' || state.currentRole==='senior';
+
+  container.innerHTML = `
+    <div class="panel">
+      <h2>Trial balance</h2>
+      <p class="hint">Auto-structured from the uploaded ledger(s). Tathmini suggests a classification for each account — review and correct any it flags as unclassified before generating financial statements.</p>
+      ${!canEdit? `<div class="locked-note" style="margin-bottom:14px;">You're in review mode as ${esc(roleLabel(state.currentRole))}. Classification is prepared by the Associate/Senior on the engagement — use review points below to flag changes.</div>` : ''}
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-label">Total debits</div><div class="sc-value">${fmt(totalDr)}</div></div>
+        <div class="stat-card"><div class="sc-label">Total credits</div><div class="sc-value">${fmt(totalCr)}</div></div>
+        <div class="stat-card ${bal.status==='balanced'?'good':bal.status==='review'?'':'bad'}">
+          <div class="sc-label">Balance check</div>
+          <div class="sc-value">${bal.status==='balanced'?'Balanced':bal.status==='review'?'Review':'Out of balance'}</div>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:-6px;">${esc(bal.message)}</p>
+      <div class="toolbar">
+        <input type="text" id="tbSearch" placeholder="Search account name or code…">
+        <select id="tbFilter">
+          <option value="">All classifications</option>
+          ${CLASS_OPTIONS.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}
+        </select>
+        <button class="btn btn-secondary" id="exportCsvBtn">Export CSV</button>
+      </div>
+      <div class="tb-wrap">
+        <table class="tbtable" id="tbTable">
+          <thead><tr>
+            <th>Code</th><th>Account</th><th>Classification</th>
+            <th style="text-align:right;">Debit</th><th style="text-align:right;">Credit</th>
+            ${state.profile.priorYearEnabled?'<th style="text-align:right;">Prior year</th>':''}
+          </tr></thead>
+          <tbody id="tbBody"></tbody>
+          <tfoot><tr>
+            <td colspan="3">Total</td>
+            <td class="num">${fmt(totalDr)}</td>
+            <td class="num">${fmt(totalCr)}</td>
+            ${state.profile.priorYearEnabled?'<td></td>':''}
+          </tr></tfoot>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="goAnomBtn">Continue to risk &amp; anomalies →</button>
+      </div>
+    </div>
+    <div class="panel">${reviewPointsPanel('tb','Trial balance')}</div>
+  `;
+
+  function drawRows(){
+    const q = (document.getElementById('tbSearch').value||'').toLowerCase();
+    const filt = document.getElementById('tbFilter').value;
+    const body = document.getElementById('tbBody');
+    const rows = accountsArr().filter(a=>{
+      if(filt && a.classification!==filt) return false;
+      if(q && !(a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q))) return false;
+      return true;
+    });
+    body.innerHTML = rows.map(a=>{
+      const dr = a.amount>0? fmt(a.amount) : '-';
+      const cr = a.amount<0? fmt(-a.amount) : '-';
+      const key = a.code+'::'+a.name.toLowerCase();
+      const clsCell = canEdit ? `<select class="cls-select ${a.classification==='unclassified'?'unclassified':''}" data-key="${esc(key)}">
+          ${CLASS_OPTIONS.map(c=>`<option value="${c.v}" ${a.classification===c.v?'selected':''}>${c.l}</option>`).join('')}
+        </select>` : `<span class="badge muted">${esc(clsMeta(a.classification).l)}</span>`;
+      return `<tr>
+        <td>${esc(a.code)||'—'}</td>
+        <td>${esc(a.name)}</td>
+        <td>${clsCell}</td>
+        <td class="num">${dr}</td>
+        <td class="num">${cr}</td>
+        ${state.profile.priorYearEnabled?`<td class="num">${a.priorAmount?fmt(a.priorAmount):'—'}</td>`:''}
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--ink-400);">No accounts match this filter.</td></tr>';
+    if(canEdit) body.querySelectorAll('.cls-select').forEach(sel=>{
+      sel.addEventListener('change',e=>{
+        const key = e.target.getAttribute('data-key');
+        if(state.accounts[key]){ state.accounts[key].classification = e.target.value; }
+        e.target.classList.toggle('unclassified', e.target.value==='unclassified');
+      });
+    });
+  }
+  drawRows();
+  document.getElementById('tbSearch').addEventListener('input',drawRows);
+  document.getElementById('tbFilter').addEventListener('change',drawRows);
+  document.getElementById('exportCsvBtn').addEventListener('click',exportTBCsv);
+  document.getElementById('goAnomBtn').addEventListener('click',()=>{ state.step='anomalies'; renderAll(); });
+  wireReviewPointsPanel(container,'tb');
+}
+
+function exportTBCsv(){
+  const rows = [['Code','Account','Classification','Debit','Credit','Prior year']];
+  accountsArr().forEach(a=>{
+    rows.push([a.code, a.name, clsMeta(a.classification).l, a.amount>0?a.amount:'', a.amount<0?-a.amount:'', a.priorAmount||'']);
+  });
+  const csv = rows.map(r=>r.map(v=>{
+    const s = String(v??'');
+    return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.profile.company||'trial-balance').replace(/[^a-z0-9]+/gi,'-')+'-trial-balance.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ============================= STEP: ANOMALIES ============================= */
+function renderAnomalies(container){
+  const flags = computeAnomalies();
+  const counts = {high:flags.filter(f=>f.sev==='high').length, medium:flags.filter(f=>f.sev==='medium').length, low:flags.filter(f=>f.sev==='low').length};
+  const canLog = state.currentRole==='associate' || state.currentRole==='senior' || state.currentRole==='manager';
+  container.innerHTML = `
+    <div class="panel">
+      <h2>Risk &amp; anomaly signals</h2>
+      <p class="hint">Rule-based checks run over the trial balance: sign-vs-classification mismatches, concentration risk, unclassified lines, and year-on-year variance. This is a transparent, auditor-reviewable first pass — not a replacement for professional judgement or substantive testing.</p>
+      <div class="stat-row">
+        <div class="stat-card bad"><div class="sc-label">High</div><div class="sc-value">${counts.high}</div></div>
+        <div class="stat-card"><div class="sc-label">Medium</div><div class="sc-value">${counts.medium}</div></div>
+        <div class="stat-card"><div class="sc-label">Low</div><div class="sc-value">${counts.low}</div></div>
+      </div>
+      ${flags.length? flags.map(f=>`
+        <div class="flag-card ${f.sev}">
+          <div class="flag-head">
+            <div class="flag-title">${esc(f.title)}</div>
+            <div class="sev-pill ${f.sev}">${f.sev}</div>
+          </div>
+          <div class="flag-body">${esc(f.body)}</div>
+        </div>
+      `).join('') : '<div class="empty-note">No risk signals raised against the current rule set. This does not substitute for full substantive audit procedures.</div>'}
+      <div class="btn-row">
+        <button class="btn btn-primary" id="goFsBtn">Continue to financial statements →</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Audit findings / exceptions</h2>
+      <p class="hint">${canLog? 'Log a finding or exception for the file.' : 'As Audit Partner, findings are logged by the team below — you review significant items.'}</p>
+      ${canLog? `<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <input type="text" id="findTitle" placeholder="Finding title" style="flex:1;min-width:180px;padding:7px 10px;border:1px solid #D8D2C2;border-radius:6px;">
+        <input type="text" id="findBody" placeholder="Description" style="flex:2;min-width:220px;padding:7px 10px;border:1px solid #D8D2C2;border-radius:6px;">
+        <button class="btn btn-secondary" id="logFindingBtn">Log finding</button>
+      </div>` : ''}
+      ${state.manualFindings.length? state.manualFindings.map(f=>`
+        <div class="flag-card medium">
+          <div class="flag-head"><div class="flag-title">${esc(f.title)}</div><div class="sev-pill medium">${esc(roleLabel(f.loggedByRole))}</div></div>
+          <div class="flag-body">${esc(f.body)}</div>
+        </div>`).join('') : '<p class="hint">No manually logged findings yet.</p>'}
+    </div>
+    <div class="panel">${reviewPointsPanel('anomalies','Risk & anomalies')}</div>
+  `;
+  document.getElementById('goFsBtn').addEventListener('click',()=>{ state.step='fs'; renderAll(); });
+  const logBtn = document.getElementById('logFindingBtn');
+  if(logBtn) logBtn.addEventListener('click',()=>{
+    const title = document.getElementById('findTitle').value.trim();
+    const body = document.getElementById('findBody').value.trim();
+    if(!title){ alert('Give the finding a title first.'); return; }
+    state.manualFindings.push({id:uid(), title, body, loggedByRole:state.currentRole});
+    renderStep();
+  });
+  wireReviewPointsPanel(container,'anomalies');
+}
+
+/* ============================= STEP: FINANCIAL STATEMENTS ============================= */
+function renderFS(container){
+  const sci = computeSCI();
+  const sfp = computeSFP();
+  const hasInc = hasIncomeStatementData();
+  const hasBs = hasBalanceSheetData();
+  const py = state.profile.priorYearEnabled;
+  const yearLabel = state.profile.yearEnd ? new Date(state.profile.yearEnd).getFullYear() : 'Current';
+
+  const sciHtml = hasInc ? `
+    <table class="fstable">
+      <tr><th class="label-col"></th><th>${yearLabel}</th>${py?`<th>Prior year</th>`:''}</tr>
+      <tr><td class="label-col">Revenue</td><td class="num">${fmt(sci.revenue)}</td>${py?`<td class="num">${fmt(sci.prior.revenue)}</td>`:''}</tr>
+      <tr><td class="label-col">Cost of sales</td><td class="num">${fmt(-sci.cogs)}</td>${py?`<td class="num">${fmt(-sci.prior.cogs)}</td>`:''}</tr>
+      <tr class="total"><td class="label-col">Gross profit</td><td class="num">${fmt(sci.grossProfit)}</td>${py?`<td class="num">${fmt(sci.prior.grossProfit)}</td>`:''}</tr>
+      <tr><td class="label-col">Other income</td><td class="num">${fmt(sci.otherIncome)}</td>${py?`<td class="num">${fmt(sci.prior.otherIncome)}</td>`:''}</tr>
+      <tr><td class="label-col">Operating expenses</td><td class="num">${fmt(-sci.opex)}</td>${py?`<td class="num">${fmt(-sci.prior.opex)}</td>`:''}</tr>
+      <tr class="total"><td class="label-col">Operating profit / (loss)</td><td class="num">${fmt(sci.operatingProfit)}</td>${py?`<td class="num">${fmt(sci.prior.operatingProfit)}</td>`:''}</tr>
+      <tr><td class="label-col">Finance costs</td><td class="num">${fmt(-sci.financeCost)}</td>${py?`<td class="num">${fmt(-sci.prior.financeCost)}</td>`:''}</tr>
+      <tr><td class="label-col">Profit / (loss) before taxation</td><td class="num">${fmt(sci.pbt)}</td>${py?`<td class="num">${fmt(sci.prior.pbt)}</td>`:''}</tr>
+      <tr><td class="label-col">Taxation</td><td class="num">${fmt(-sci.tax)}</td>${py?`<td class="num">${fmt(-sci.prior.tax)}</td>`:''}</tr>
+      <tr class="grandtotal"><td class="label-col">Profit / (loss) for the year</td><td class="num">${fmt(sci.net)}</td>${py?`<td class="num">${fmt(sci.prior.net)}</td>`:''}</tr>
+    </table>
+  ` : `<div class="empty-note">No income or expense accounts were detected in the uploaded data — upload a general ledger or profit and loss export to build this statement.</div>`;
+
+  const sfpHtml = hasBs ? `
+    <table class="fstable">
+      <tr><th class="label-col"></th><th>${yearLabel}</th>${py?`<th>Prior year</th>`:''}</tr>
+      <tr class="section"><td class="label-col">Assets</td><td></td>${py?'<td></td>':''}</tr>
+      <tr><td class="label-col">Non-current assets</td><td class="num">${fmt(sfp.nca)}</td>${py?`<td class="num">${fmt(sfp.prior.nca)}</td>`:''}</tr>
+      <tr><td class="label-col">Current assets</td><td class="num">${fmt(sfp.ca)}</td>${py?`<td class="num">${fmt(sfp.prior.ca)}</td>`:''}</tr>
+      <tr class="total"><td class="label-col">Total assets</td><td class="num">${fmt(sfp.totalAssets)}</td>${py?`<td class="num">${fmt(sfp.prior.totalAssets)}</td>`:''}</tr>
+      <tr class="section"><td class="label-col">Equity and liabilities</td><td></td>${py?'<td></td>':''}</tr>
+      <tr><td class="label-col">Equity (incl. current-year result)</td><td class="num">${fmt(sfp.equity)}</td>${py?`<td class="num">${fmt(sfp.prior.equity)}</td>`:''}</tr>
+      <tr><td class="label-col">Non-current liabilities</td><td class="num">${fmt(sfp.ncl)}</td>${py?`<td class="num">${fmt(sfp.prior.ncl)}</td>`:''}</tr>
+      <tr><td class="label-col">Current liabilities</td><td class="num">${fmt(sfp.cl)}</td>${py?`<td class="num">${fmt(sfp.prior.cl)}</td>`:''}</tr>
+      <tr class="grandtotal"><td class="label-col">Total equity and liabilities</td><td class="num">${fmt(sfp.totalEquityLiab)}</td>${py?`<td class="num">${fmt(sfp.prior.totalEquityLiab)}</td>`:''}</tr>
+    </table>
+    <p class="hint" style="margin-top:8px;">${Math.abs(sfp.totalAssets-sfp.totalEquityLiab)<Math.max(2,Math.abs(sfp.totalAssets)*0.0005) ? 'Assets equal equity and liabilities.' : `Difference of ${fmt(sfp.totalAssets-sfp.totalEquityLiab)} between total assets and total equity and liabilities — review classifications on the trial balance step.`}</p>
+  ` : `<div class="empty-note">No balance-sheet accounts (assets, liabilities or equity) were detected — this upload appears to be income-statement data only. Upload a trial balance covering the full chart of accounts to build the statement of financial position.</div>`;
+
+  container.innerHTML = `
+    <div class="panel">
+      <h2>Statement of comprehensive income</h2>
+      ${sciHtml}
+    </div>
+    <div class="panel">
+      <h2>Statement of financial position</h2>
+      ${sfpHtml}
+    </div>
+    <div class="panel">
+      <div class="btn-row" style="justify-content:flex-start;">
+        <button class="btn btn-primary" id="goReportBtn">Generate full audit report →</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('goReportBtn').addEventListener('click',()=>{
+    state.reportGeneratedAt = new Date();
+    state.step='report'; renderAll();
+  });
+}
+
+/* ============================= STEP: AUDIT REPORT ============================= */
+function notesFromAccounts(){
+  const groups = {};
+  accountsArr().forEach(a=>{
+    if(a.classification==='unclassified') return;
+    const meta = clsMeta(a.classification);
+    if(!groups[meta.l]) groups[meta.l]=[];
+    groups[meta.l].push(a);
+  });
+  return groups;
+}
+
+function renderReport(container){
+  const p = state.profile;
+  const sci = computeSCI();
+  const sfp = computeSFP();
+  const hasBs = hasBalanceSheetData();
+  const hasInc = hasIncomeStatementData();
+  const yearEndDate = p.yearEnd ? new Date(p.yearEnd) : null;
+  const yearEndStr = yearEndDate ? yearEndDate.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '[year end]';
+  const yearLabel = yearEndDate ? yearEndDate.getFullYear() : 'current period';
+  const priorLabel = yearEndDate ? yearEndDate.getFullYear()-1 : 'prior period';
+  const directors = (p.directors||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const bankers = (p.bankers||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const notes = notesFromAccounts();
+  let noteNo = 3;
+  const noteEntries = Object.entries(notes);
+
+  container.innerHTML = `
+    <div class="no-print panel" style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2 style="margin-bottom:2px;">Draft audit report</h2>
+        <p class="hint" style="margin:0;">Generated from the classified trial balance. Review every boilerplate paragraph before issue — this is a drafting aid, not a substitute for audit sign-off.</p>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-secondary" id="printBtn">Print / save as PDF</button>
+      </div>
+    </div>
+    <div class="no-print panel">
+      <div class="workflow-badge">${({draft:'Draft',senior_ready:'Ready for Manager review',manager_approved:'Approved — awaiting Partner sign-off',signed:'Signed and issued'})[state.reportWorkflow.status]}</div>
+      ${state.reportWorkflow.history.length? `<div class="hint" style="margin-bottom:10px;">${state.reportWorkflow.history.map(h=>esc(h)).join(' · ')}</div>` : ''}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${state.currentRole==='senior' && state.reportWorkflow.status==='draft' ? `<button class="btn btn-secondary" id="wfSeniorReady">Mark ready for Manager review</button>` : ''}
+        ${state.currentRole==='manager' && state.reportWorkflow.status==='senior_ready' ? `<button class="btn btn-secondary" id="wfManagerApprove">Approve for Partner sign-off</button>` : ''}
+        ${state.currentRole==='partner' && state.reportWorkflow.status==='manager_approved' ? `<button class="btn btn-primary" id="wfPartnerSign">Sign &amp; issue audit opinion</button>` : ''}
+        ${state.currentRole==='associate' ? `<p class="hint" style="margin:0;">Audit Associates do not have report-drafting access — you're viewing the draft prepared by the Senior.</p>` : ''}
+      </div>
+    </div>
+
+    <div class="doc front-cover">
+      <div class="draft-stamp" style="${state.reportWorkflow.status==='signed'?'border-color:var(--ok);color:var(--ok);':''}">${state.reportWorkflow.status==='signed'?'SIGNED':'DRAFT'}</div>
+      <div class="fc-name">${esc(p.company || '[Company name]')}</div>
+      <div class="gold-rule"></div>
+      <div class="fc-sub">AUDITED FINANCIAL STATEMENTS</div>
+      <div class="fc-year">FOR THE YEAR ENDED ${esc(yearEndStr.toUpperCase())}</div>
+      <div class="fc-firm">
+        ${esc(p.firm || '[Audit firm]')}<br>
+        Certified Public Accountants<br>
+        ${esc(p.firmCity || 'Nairobi')}
+      </div>
+    </div>
+
+    <div class="doc">
+      <h2 class="doc-title">${esc(p.company||'[Company name]')}</h2>
+      <div class="doc-sub">Financial statements for the year ended ${esc(yearEndStr)}</div>
+      <div class="doc-heading">General information</div>
+      <table class="fstable"><tbody>
+        <tr><td class="label-col" style="width:150px;font-weight:700;">Directors</td><td class="label-col">${directors.length? directors.join('<br>') : '[Director names]'}</td></tr>
+        <tr><td class="label-col" style="font-weight:700;">Registered office</td><td class="label-col">${p.regOffice? esc(p.regOffice).replace(/\n/g,'<br>') : '[Registered office address]'}</td></tr>
+        <tr><td class="label-col" style="font-weight:700;">Bankers</td><td class="label-col">${bankers.length? bankers.join('<br>') : '[Bankers]'}</td></tr>
+        <tr><td class="label-col" style="font-weight:700;">Secretary</td><td class="label-col">${p.secretary? esc(p.secretary) : '[Company secretary]'}</td></tr>
+        <tr><td class="label-col" style="font-weight:700;">Independent auditors</td><td class="label-col">${esc(p.firm||'[Audit firm]')}, Certified Public Accountants of Kenya</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="doc">
+      <h2 class="doc-title">${esc(p.company||'[Company name]')}</h2>
+      <div class="doc-sub">Financial statements for the year ended ${esc(yearEndStr)}</div>
+      <div class="doc-heading">Directors' report</div>
+      <p>The Directors have pleasure in presenting their report together with the audited financial statements for the year ended ${esc(yearEndStr)}.</p>
+      <p><b>1. Review of activities</b><br>
+      ${p.industry? `The company is engaged in the ${esc(p.industry.toLowerCase())} business${p.location? ' and operates principally in '+esc(p.location):''}.` : '[Description of principal activities.]'}
+      ${hasInc? ` Net profit/(loss) for the year was Kshs ${fmt(sci.net)}${sci.prior.net?` (${priorLabel}: Kshs ${fmt(sci.prior.net)})`:''}, after taxation of Kshs ${fmt(sci.tax)}.` : ''}</p>
+      <p><b>2. Events after the reporting period</b><br>
+      The directors are not aware of any matter or circumstance arising since the end of the financial year, not otherwise dealt with in this report or the financial statements, that would significantly affect the operations of the company or the results of those operations.</p>
+      <p><b>3. Dividends</b><br>No dividends were declared or paid to shareholders during the year.</p>
+      <p><b>4. Directors</b><br>The names of the Directors who held office during the year are set out on the general information page.</p>
+      <p><b>5. Independent auditors</b><br>The auditors, ${esc(p.firm||'[Audit firm]')}, Certified Public Accountants, have expressed their willingness to continue in office in accordance with the Kenyan Companies Act, 2015.</p>
+      <div class="sig-block">
+        <div></div>
+        <div class="sig-line">Secretary ${p.secretary? '· '+esc(p.secretary):''}</div>
+      </div>
+    </div>
+
+    <div class="doc">
+      <h2 class="doc-title">${esc(p.company||'[Company name]')}</h2>
+      <div class="doc-sub">Financial statements for the year ended ${esc(yearEndStr)}</div>
+      <div class="doc-heading">Statement of directors' responsibilities</div>
+      <p>The Kenyan Companies Act, 2015 requires the directors to prepare financial statements for each financial year that give a true and fair view of the state of affairs of the company as at the end of the financial year, and of its profit or loss for that year. It also requires the directors to ensure the company keeps proper accounting records that disclose, with reasonable accuracy, the financial position of the company.</p>
+      <p>The directors accept responsibility for the preparation and fair presentation of these financial statements in accordance with ${esc(p.framework)} and the requirements of the Kenyan Companies Act, 2015. They also accept responsibility for such internal control as they determine necessary to enable the preparation of financial statements free from material misstatement, whether due to fraud or error.</p>
+      <p>The directors have made an assessment of the company's ability to continue as a going concern and have no reason to believe the company will not be a going concern for at least the next twelve months.</p>
+      <p>Approved by the board of directors on [date] and signed on its behalf by:</p>
+      <div class="sig-block">
+        <div class="sig-line">Director ${directors[0]? '· '+esc(directors[0]):''}</div>
+        <div class="sig-line">Director ${directors[1]? '· '+esc(directors[1]):''}</div>
+      </div>
+    </div>
+
+    <div class="doc">
+      <h2 class="doc-title">${esc(p.company||'[Company name]')}</h2>
+      <div class="doc-sub">Financial statements for the year ended ${esc(yearEndStr)}</div>
+      <div class="doc-heading">Independent auditors' report</div>
+      <p>We have audited the financial statements of ${esc(p.company||'[Company name]')} (\u201cthe Company\u201d), which comprise the statement of financial position as at ${esc(yearEndStr)}, the statement of comprehensive income, statement of changes in equity and statement of cash flows for the year then ended, and a summary of significant accounting policies and other explanatory notes.</p>
+      <p><b>Directors' responsibility</b><br>The directors are responsible for the preparation and fair presentation of these financial statements in accordance with ${esc(p.framework)} and the Kenyan Companies Act, 2015, and for such internal control as the directors determine is necessary to enable the preparation of financial statements that are free from material misstatement, whether due to fraud or error.</p>
+      <p><b>Auditors' responsibility</b><br>Our responsibility is to express an opinion on these financial statements based on our audit. We conducted our audit in accordance with International Standards on Auditing. Those standards require that we comply with ethical requirements and plan and perform the audit to obtain reasonable assurance about whether the financial statements are free from material misstatement.</p>
+      <p>An audit involves performing procedures to obtain audit evidence about the amounts and disclosures in the financial statements. We believe the audit evidence we have obtained is sufficient and appropriate to provide a basis for our opinion.</p>
+      <p><b>Opinion</b><br>In our opinion, the accompanying financial statements give a true and fair view of the financial position of ${esc(p.company||'[Company name]')} as at ${esc(yearEndStr)}, and of its financial performance and cash flows for the year then ended, in accordance with ${esc(p.framework)} and the Kenyan Companies Act, 2015.</p>
+      <p style="margin-top:26px;">The engagement partner responsible for the audit resulting in this independent auditors' report is ${esc(p.partner||'[Engagement partner]')}${p.practiceNo? ' ('+esc(p.practiceNo)+')':''}.</p>
+      <div class="sig-block">
+        <div>${esc(p.firmCity||'Nairobi')}, Kenya</div>
+        <div class="sig-line">${esc(p.firm||'[Audit firm]')}<br>Certified Public Accountants of Kenya</div>
+      </div>
+    </div>
+
+    <div class="doc">
+      <h2 class="doc-title">${esc(p.company||'[Company name]')}</h2>
+      <div class="doc-sub">Financial statements for the year ended ${esc(yearEndStr)}</div>
+      <div class="doc-heading">Statement of comprehensive income</div>
+      ${hasInc? `<table class="fstable">
+        <tr><th class="label-col"></th><th>${yearLabel}<br>Kshs</th>${state.profile.priorYearEnabled?`<th>${priorLabel}<br>Kshs</th>`:''}</tr>
+        <tr><td class="label-col">Revenue</td><td class="num">${fmt(sci.revenue)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sci.prior.revenue)}</td>`:''}</tr>
+        <tr><td class="label-col">Cost of sales</td><td class="num">${fmt(-sci.cogs)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(-sci.prior.cogs)}</td>`:''}</tr>
+        <tr class="total"><td class="label-col">Gross profit</td><td class="num">${fmt(sci.grossProfit)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sci.prior.grossProfit)}</td>`:''}</tr>
+        <tr><td class="label-col">Other income</td><td class="num">${fmt(sci.otherIncome)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sci.prior.otherIncome)}</td>`:''}</tr>
+        <tr><td class="label-col">Operating expenses</td><td class="num">${fmt(-sci.opex)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(-sci.prior.opex)}</td>`:''}</tr>
+        <tr class="total"><td class="label-col">Operating profit / (loss)</td><td class="num">${fmt(sci.operatingProfit)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sci.prior.operatingProfit)}</td>`:''}</tr>
+        <tr><td class="label-col">Finance costs</td><td class="num">${fmt(-sci.financeCost)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(-sci.prior.financeCost)}</td>`:''}</tr>
+        <tr><td class="label-col">Taxation</td><td class="num">${fmt(-sci.tax)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(-sci.prior.tax)}</td>`:''}</tr>
+        <tr class="grandtotal"><td class="label-col">Profit / (loss) for the year</td><td class="num">${fmt(sci.net)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sci.prior.net)}</td>`:''}</tr>
+      </table>` : `<p>[No income statement data available in the uploaded ledger.]</p>`}
+    </div>
+
+    <div class="doc">
+      <h2 class="doc-title">${esc(p.company||'[Company name]')}</h2>
+      <div class="doc-sub">Financial statements for the year ended ${esc(yearEndStr)}</div>
+      <div class="doc-heading">Statement of financial position</div>
+      ${hasBs? `<table class="fstable">
+        <tr><th class="label-col"></th><th>${yearLabel}<br>Kshs</th>${state.profile.priorYearEnabled?`<th>${priorLabel}<br>Kshs</th>`:''}</tr>
+        <tr class="section"><td class="label-col">Assets</td><td></td>${state.profile.priorYearEnabled?'<td></td>':''}</tr>
+        <tr><td class="label-col">Non-current assets</td><td class="num">${fmt(sfp.nca)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sfp.prior.nca)}</td>`:''}</tr>
+        <tr><td class="label-col">Current assets</td><td class="num">${fmt(sfp.ca)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sfp.prior.ca)}</td>`:''}</tr>
+        <tr class="total"><td class="label-col">Total assets</td><td class="num">${fmt(sfp.totalAssets)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sfp.prior.totalAssets)}</td>`:''}</tr>
+        <tr class="section"><td class="label-col">Equity and liabilities</td><td></td>${state.profile.priorYearEnabled?'<td></td>':''}</tr>
+        <tr><td class="label-col">Equity</td><td class="num">${fmt(sfp.equity)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sfp.prior.equity)}</td>`:''}</tr>
+        <tr><td class="label-col">Non-current liabilities</td><td class="num">${fmt(sfp.ncl)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sfp.prior.ncl)}</td>`:''}</tr>
+        <tr><td class="label-col">Current liabilities</td><td class="num">${fmt(sfp.cl)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sfp.prior.cl)}</td>`:''}</tr>
+        <tr class="grandtotal"><td class="label-col">Total equity and liabilities</td><td class="num">${fmt(sfp.totalEquityLiab)}</td>${state.profile.priorYearEnabled?`<td class="num">${fmt(sfp.prior.totalEquityLiab)}</td>`:''}</tr>
+      </table>` : `<p>[No balance-sheet data available in the uploaded ledger.]</p>`}
+    </div>
+
+    <div class="doc">
+      <h2 class="doc-title">${esc(p.company||'[Company name]')}</h2>
+      <div class="doc-sub">Financial statements for the year ended ${esc(yearEndStr)}</div>
+      <div class="doc-heading">Notes to the financial statements</div>
+      ${noteEntries.length? noteEntries.map(([label,items])=>{
+        const total = items.reduce((s,a)=>s+a.amount,0);
+        const html = `<p><b>Note ${noteNo++}: ${esc(label)}</b></p>
+        <table class="fstable">${items.map(a=>`<tr><td class="label-col">${esc(a.name)}</td><td class="num">${fmt(Math.abs(a.amount))}</td></tr>`).join('')}
+        <tr class="total"><td class="label-col">Total</td><td class="num">${fmt(Math.abs(total))}</td></tr></table>`;
+        return html;
+      }).join('') : '<p>[Notes will be drafted automatically once accounts are classified on the trial balance step.]</p>'}
+      <p style="margin-top:20px;color:var(--ink-600);font-style:italic;">Accounting policy notes, related-party disclosures and other qualitative notes are not auto-drafted in this prototype and should be added by the engagement team.</p>
+    </div>
+  `;
+  document.getElementById('printBtn').addEventListener('click',()=>window.print());
+  const wf1 = document.getElementById('wfSeniorReady');
+  if(wf1) wf1.addEventListener('click',()=>{
+    state.reportWorkflow.status='senior_ready';
+    state.reportWorkflow.history.push(`Marked ready by ${roleLabel('senior')}`);
+    renderStep();
+  });
+  const wf2 = document.getElementById('wfManagerApprove');
+  if(wf2) wf2.addEventListener('click',()=>{
+    state.reportWorkflow.status='manager_approved';
+    state.reportWorkflow.history.push(`Approved by ${roleLabel('manager')}`);
+    renderStep();
+  });
+  const wf3 = document.getElementById('wfPartnerSign');
+  if(wf3) wf3.addEventListener('click',()=>{
+    state.reportWorkflow.status='signed';
+    state.reportWorkflow.history.push(`Signed & issued by ${roleLabel('partner')} on ${new Date().toLocaleDateString('en-GB')}`);
+    state.reportGeneratedAt = new Date();
+    renderStep();
+  });
+}
+
+/* ============================= STEP: PORTAL ============================= */
+function renderPortal(container){
+  const accs = accountsArr();
+  const flags = computeAnomalies();
+  const reportStatusLabel = ({draft:'Draft in progress',senior_ready:'With Manager',manager_approved:'Awaiting sign-off',signed:'Signed & issued'})[state.reportWorkflow.status];
+  const lock = state.fileLock;
+  const roadmap = [
+    {label:'Create prospective client / engagement', role:'Senior and above'},
+    {label:'Assign audit team', role:'Manager (Partner oversight)'},
+    {label:'Create & approve audit plan', role:'Senior drafts, Manager/Partner approve'},
+    {label:'Completion checklist', role:'Senior drafts, Manager reviews, Partner approves'}
+  ];
+  container.innerHTML = `
+    <div class="panel">
+      <h2>Client portal</h2>
+      <p class="hint">Outputs generated for ${esc(state.profile.company||'this engagement')}. In production, these would be stored against the client's record and versioned per audit cycle.</p>
+      <div class="stat-row">
+        <div class="stat-card accent"><div class="sc-label">Accounts in ledger</div><div class="sc-value">${accs.length}</div></div>
+        <div class="stat-card"><div class="sc-label">Risk flags</div><div class="sc-value">${flags.length}</div></div>
+        <div class="stat-card ${state.reportWorkflow.status==='signed'?'good':''}"><div class="sc-label">Report status</div><div class="sc-value" style="font-size:15px;">${esc(reportStatusLabel)}</div></div>
+      </div>
+      <div class="section-title">Documents</div>
+      <div class="file-row"><div><div class="fr-name">Trial balance (CSV)</div><div class="fr-meta">${accs.length} accounts, classified</div></div>
+        <button class="btn btn-secondary" id="portalCsvBtn">Download</button></div>
+      <div class="file-row"><div><div class="fr-name">Draft audit report</div><div class="fr-meta">Front page through notes to the accounts</div></div>
+        <button class="btn btn-secondary" id="portalReportBtn">Open</button></div>
+
+      <div class="section-title">Audit file status</div>
+      <div class="workflow-badge">${lock.status==='locked'?'Locked':lock.status==='lock_recommended'?'Lock recommended — awaiting Partner':'Open'}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+        ${state.currentRole==='manager' && lock.status==='open' ? `<button class="btn btn-secondary" id="recommendLockBtn">Recommend lock</button>` : ''}
+        ${state.currentRole==='partner' && lock.status!=='locked' && state.reportWorkflow.status==='signed' ? `<button class="btn btn-primary" id="finalizeLockBtn">Finalize &amp; lock file</button>` : ''}
+        ${state.currentRole==='partner' && lock.status!=='locked' && state.reportWorkflow.status!=='signed' ? `<p class="hint" style="margin:0;">The audit opinion must be signed before the file can be locked.</p>` : ''}
+        ${lock.status==='locked' && state.currentRole==='manager' ? `<button class="btn btn-secondary" id="recommendReopenBtn">Recommend reopen</button>` : ''}
+        ${lock.status==='locked' && state.currentRole==='partner' ? `<button class="btn btn-secondary" id="approveReopenBtn">Approve reopen</button>` : ''}
+      </div>
+
+      <div class="section-title">Engagement workflow — roadmap</div>
+      ${roadmap.map(r=>`<div class="roadmap-row"><span>${esc(r.label)}</span><span class="rr-role">${esc(r.role)} · not yet built in this prototype</span></div>`).join('')}
+
+      <div class="btn-row" style="justify-content:flex-start;">
+        <button class="btn btn-gold" id="newEngagementBtn">Start a new engagement</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('portalCsvBtn').addEventListener('click',exportTBCsv);
+  document.getElementById('portalReportBtn').addEventListener('click',()=>{ state.step='report'; renderAll(); });
+  const rlBtn = document.getElementById('recommendLockBtn');
+  if(rlBtn) rlBtn.addEventListener('click',()=>{ lock.status='lock_recommended'; renderStep(); });
+  const flBtn = document.getElementById('finalizeLockBtn');
+  if(flBtn) flBtn.addEventListener('click',()=>{ lock.status='locked'; renderStep(); });
+  const rrBtn = document.getElementById('recommendReopenBtn');
+  if(rrBtn) rrBtn.addEventListener('click',()=>{ lock.status='open'; renderStep(); });
+  const arBtn = document.getElementById('approveReopenBtn');
+  if(arBtn) arBtn.addEventListener('click',()=>{ lock.status='open'; renderStep(); });
+  document.getElementById('newEngagementBtn').addEventListener('click',()=>{
+    if(!confirm('Start a new engagement? This clears the current client, ledger and report from the prototype.')) return;
+    Object.assign(state, {
+      step:'profile',
+      profile:{company:'',regNo:'',kraPin:'',industry:'',location:'',yearEnd:'',framework:'IFRS',priorYearEnabled:true,directors:'',secretary:'',regOffice:'',bankers:'',firm:'',partner:'',practiceNo:'',firmCity:'Nairobi'},
+      profileSaved:false, files:[], accounts:{}, controlTotals:{income:null,expenses:null}, reportGeneratedAt:null,
+      acceptance:{status:'pending', history:[]}, reviewPoints:[], manualFindings:[],
+      reportWorkflow:{status:'draft', history:[]}, fileLock:{status:'open', history:[]}
+    });
+    renderAll();
+  });
+}
+
+/* ============================= REVIEW POINTS (shared widget) ============================= */
+function reviewPointsPanel(stepKey, stepLabel){
+  const pts = state.reviewPoints.filter(p=>p.step===stepKey);
+  const canRaise = roleAtLeast('senior');
+  const targetOptions = ROLE_HIERARCHY.slice(0, roleIdx(state.currentRole)).filter(r=>r!=='partner' || true);
+  return `
+  <div class="section-title">Review points — ${esc(stepLabel)}</div>
+  ${canRaise? `
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+    <select id="rpTarget_${stepKey}" class="cls-select" style="min-width:150px;">
+      ${targetOptions.map(r=>`<option value="${r}">On ${roleLabel(r)} work</option>`).join('')}
+    </select>
+    <input type="text" id="rpText_${stepKey}" placeholder="Describe the review point…" style="flex:1;min-width:200px;padding:6px 9px;border:1px solid #D8D2C2;border-radius:6px;">
+    <button class="btn btn-secondary" data-raise="${stepKey}">Raise point</button>
+  </div>` : ''}
+  ${pts.length? pts.map(p=>{
+    const canClear = p.status==='open' && roleAbove(p.targetRole);
+    const canRespond = p.status==='open' && state.currentRole===p.targetRole;
+    return `<div class="rp-card ${p.status}">
+      <div class="rp-head"><span>Raised by ${roleLabel(p.raisedByRole)} · on ${roleLabel(p.targetRole)} work</span><span>${p.status==='cleared'?'Cleared':'Open'}</span></div>
+      <div class="rp-text">${esc(p.text)}</div>
+      ${p.response? `<div class="rp-resp">Response: ${esc(p.response)}</div>` : ''}
+      ${canRespond? `<div style="margin-top:8px;display:flex;gap:8px;"><input type="text" id="rpResp_${p.id}" placeholder="Respond to this point…" style="flex:1;padding:5px 8px;border:1px solid #D8D2C2;border-radius:6px;font-size:12px;"><button class="btn btn-secondary" data-respond="${p.id}" style="padding:5px 12px;">Respond</button></div>` : ''}
+      ${canClear? `<div style="margin-top:8px;"><button class="btn btn-primary" data-clear="${p.id}" style="padding:5px 12px;">Clear point</button></div>` : ''}
+    </div>`;
+  }).join('') : '<p class="hint">No review points raised on this section.</p>'}
+  `;
+}
+function wireReviewPointsPanel(container, stepKey){
+  const raiseBtn = container.querySelector(`[data-raise="${stepKey}"]`);
+  if(raiseBtn){
+    raiseBtn.addEventListener('click',()=>{
+      const text = document.getElementById(`rpText_${stepKey}`).value.trim();
+      const target = document.getElementById(`rpTarget_${stepKey}`).value;
+      if(!text){ alert('Describe the review point first.'); return; }
+      state.reviewPoints.push({id:uid(), step:stepKey, text, raisedByRole:state.currentRole, targetRole:target, status:'open', response:''});
+      renderStep();
+    });
+  }
+  container.querySelectorAll('[data-clear]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const p = state.reviewPoints.find(x=>x.id===btn.getAttribute('data-clear'));
+      if(p){ p.status='cleared'; renderStep(); }
+    });
+  });
+  container.querySelectorAll('[data-respond]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id = btn.getAttribute('data-respond');
+      const p = state.reviewPoints.find(x=>x.id===id);
+      const val = document.getElementById(`rpResp_${id}`).value.trim();
+      if(p && val){ p.response = val; renderStep(); }
+    });
+  });
+}
+
+/* ============================= HOME SCREEN ============================= */
+function renderHome(){
+  document.getElementById('shell').style.display = 'none';
+  const home = document.getElementById('homeScreen');
+  home.style.display = 'flex';
+  home.style.flexDirection = 'column';
+  home.style.alignItems = 'center';
+  home.innerHTML = `
+    <div class="home-hero">
+      <div class="home-mark">T</div>
+      <h1>Tathmini</h1>
+      <p class="home-tagline">Your risk intelligence system</p>
+      <p class="home-credit">by IwazoLab</p>
+    </div>
+    <div class="role-grid">
+      ${ROLE_HIERARCHY.map(r=>{
+        const m = ROLE_META[r];
+        return `<div class="role-card">
+          <div class="rc-avatar">${m.initials}</div>
+          <h3>${esc(m.label)}</h3>
+          <p class="rc-blurb">${esc(m.blurb)}</p>
+          <ul>${m.highlights.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>
+          <button data-role="${r}">Continue as ${esc(m.label)}</button>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="matrix-toggle-wrap">
+      <button id="toggleMatrixBtn">View full permissions matrix</button>
+    </div>
+    <div class="matrix-wrap" id="matrixWrap" style="display:none;">
+      <table class="permtable">
+        <thead><tr><th>Activity in the system</th>${ROLE_HIERARCHY.map(r=>`<th>${esc(ROLE_META[r].label)}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${PERMISSIONS.map(row=>`<tr class="${row.bold?'bold-row':''}">
+            <td>${esc(row.activity)}</td>
+            ${ROLE_HIERARCHY.map(r=>{
+              const v = row.vals[r];
+              const cls = v==='✅' ? 'yes' : v==='❌' ? 'no' : '';
+              return `<td class="${cls}">${esc(v)}</td>`;
+            }).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  home.querySelectorAll('[data-role]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      state.currentRole = btn.getAttribute('data-role');
+      renderApp();
+    });
+  });
+  document.getElementById('toggleMatrixBtn').addEventListener('click',()=>{
+    const w = document.getElementById('matrixWrap');
+    const showing = w.style.display!=='none';
+    w.style.display = showing? 'none':'block';
+    document.getElementById('toggleMatrixBtn').textContent = showing? 'View full permissions matrix':'Hide permissions matrix';
+  });
+}
+
+/* ============================= ROUTER ============================= */
+function renderStep(){
+  const container = document.getElementById('content');
+  if(!stepUnlocked(state.step)) state.step = 'profile';
+  ({
+    profile: renderProfile,
+    upload: renderUpload,
+    tb: renderTB,
+    anomalies: renderAnomalies,
+    fs: renderFS,
+    report: renderReport,
+    portal: renderPortal
+  }[state.step])(container);
+  renderSidebar();
+  renderTopbar();
+  renderRolePill();
+}
+function renderRolePill(){
+  const el = document.getElementById('rolePill');
+  if(!el || !state.currentRole) return;
+  const m = ROLE_META[state.currentRole];
+  el.innerHTML = `<div class="rp-avatar">${m.initials}</div><div class="rp-name">${esc(m.label)}</div><button class="rp-switch" id="switchRoleBtn">Switch role</button>`;
+  document.getElementById('switchRoleBtn').addEventListener('click',()=>{
+    state.currentRole = null;
+    renderApp();
+  });
+}
+function renderAll(){ renderStep(); }
+function renderApp(){
+  if(!state.currentRole){ renderHome(); return; }
+  document.getElementById('homeScreen').style.display = 'none';
+  document.getElementById('shell').style.display = 'flex';
+  renderStep();
+}
+document.getElementById('brandHome').addEventListener('click',()=>{
+  state.currentRole = null;
+  renderApp();
+});
+
+renderApp();
+</script>
+</body>
+</html>
